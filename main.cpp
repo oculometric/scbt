@@ -3,11 +3,18 @@
 
 using namespace stui;
 
-void nextStep();
+TabDisplay tab_display({ "info", "input", "archive options", "extra options", "execute" });
 
-TabDisplay tab_display({ "input & output", "archive options", "other options", "operation monitor" });
-
-// TODO: page 0 where you can read instructions and load saved configs
+Page info_configs;
+TextArea info_block("here will go some usage information");
+BorderedBox bb8(&info_block);
+ImageView showoff_image(nullptr, Coordinate{ 20, 80 });
+HorizontalSpacer hs(2);
+HorizontalBox hb3({ &bb8, &hs, &showoff_image });
+Label info_help_label(" [TAB] next field | [S] save config | [L] load config | [1-5] next step ");
+VerticalBox vb8({ &tab_display, &hb3, &info_help_label });
+// TODO: dialog for loading/saving configs
+// TODO: make the demo image and assign it
 
 Page input_selection;
 ListView include_list;
@@ -16,10 +23,9 @@ ListView exclude_list;
 BorderedBox bb1(&exclude_list, "excluded patterns");
 ToggleButton exclude_toggles({ { "version control", true }, { "backup files '.~'", false }, { ".godot directories", true } });
 BorderedBox bb2(&exclude_toggles, "common exclude patterns");
-Button next_button("next step", nextStep);
-VerticalBox vb0({ &bb1, &bb2, &next_button });
+VerticalBox vb0({ &bb1, &bb2 });
 HorizontalBox hb1({ &bb0, &vb0 });
-Label input_help_label(" [TAB] next field | [A] add entry | [R] remove entry | [S] save config | [L] load config | [1-4] next step ");
+Label input_help_label(" [TAB] next field | [A] add entry | [R] remove entry | [1-5] next step ");
 VerticalBox vb1({ &tab_display, &hb1, &input_help_label });
 // TODO: dialog for adding files or excludes
 
@@ -33,55 +39,66 @@ Slider compression_level(3.0f / 9.0f, 1.0f / 9.0f);
 Label compression_level_label("3");
 VerticalBox vb5({ &compression_level, &compression_level_label });
 BorderedBox bb5(&vb5, "compression level");
-ToggleButton keep_uncompressed({ { "keep uncompressed tar", false } });
 Slider max_threads(4.0f / 16.0f);
 Label max_threads_label("4");
 VerticalBox vb6({ &max_threads, &max_threads_label });
 BorderedBox bb6(&vb6, "max threads");
-VerticalBox vb4({ &bb5, &keep_uncompressed, &bb6, &next_button });
+ToggleButton keep_uncompressed({ { "keep uncompressed tar", false } });
+VerticalBox vb4({ &bb5, &bb6, &keep_uncompressed });
 HorizontalBox hb2({ &vb3, &vb4 });
-Label archive_help_label(" [TAB] next field | [1-4] next step ");
+Label archive_help_label(" [TAB] next field | [1-5] next step ");
 VerticalBox vb2({ &tab_display, &hb2, &archive_help_label });
 
 Page additional_config;
 RadioButton verbosity({ "normal", "verbose", "extra verbose" });
 BorderedBox bb7(&verbosity, "verbosity");
-Label additional_help_label(" [TAB] next field | [1-4] next step ");
-VerticalBox vb7({ &tab_display, &bb7, &next_button, &additional_help_label });
+Label additional_help_label(" [TAB] next field | [1-5] next step ");
+VerticalBox vb7({ &tab_display, &bb7, &additional_help_label });
 // TODO: additional copy operations
 // TODO: other command line toggles
 
 Page execution;
-// output location
-// command to be executed
-// capture of command output
-// animation
-// go! button
-// progress calculator
-// compress ratio information
+TextInputBox output_location("archive.tar");
+BorderedBox bb9(&output_location, "output file");
+Label command_label("tar something", 0);
+BorderedBox bb10(&command_label, "backup command");
+Button execute_button("execute");
+TextArea command_capture("command output here");
+BorderedBox bb11(&command_capture, "command output");
+ProgressBar backup_progress(0.0f);
+ProgressBar ratio_bar(1.0f);
+Label ratio_label("compress ratio: ");
+SizeLimiter sl0(&ratio_label, Coordinate{ 16, 1 });
+HorizontalBox hb4({ &sl0, &ratio_bar });
+VerticalBox vb9({ &execute_button, &bb11, &backup_progress, &hb4 });
+ImageView image_animation(nullptr, Coordinate{ 20, 80 });
+HorizontalBox hb5({ &vb9, &image_animation });
+Label execution_help_label(" [TAB] next field | [Shift+X] execute | [Shift+C] cancel | [1-5] previous step ");
+VerticalBox vb10({ &tab_display, &bb9, &bb10, &hb5, &execution_help_label });
 
-Page* active_page = &input_selection;
+// TODO: set command label to command to execute
+// TODO: set output extension automatically
+// TODO: disable output location input box when running
+// TODO: set command capture to output of command when executing
+// TODO: max execute button do something
+// TODO: animation
+// TODO: calculate progress calculator
+// TODO: calculate compress ratio
+
+Page* active_page = &info_configs;
 
 void setPage(int page)
 {
 	switch(page)
 	{
-	case 0: active_page = &input_selection; break;
-	case 1: active_page = &archive_config; break;
-	case 2: active_page = &additional_config; break;
-	case 3: active_page = &execution; break;
+	case 0: active_page = &info_configs; break;
+	case 1: active_page = &input_selection; break;
+	case 2: active_page = &archive_config; break;
+	case 3: active_page = &additional_config; break;
+	case 4: active_page = &execution; break;
 	}
 
 	tab_display.current_tab = page;
-}
-void nextStep()
-{
-	if (active_page == &input_selection)
-		setPage(1);
-	else if (active_page == &archive_config)
-		setPage(2);
-	else if (active_page == &additional_config)
-		setPage(3);
 }
 
 void jumpTab1()
@@ -104,6 +121,11 @@ void jumpTab4()
 	setPage(3);
 }
 
+void jumpTab5()
+{
+	setPage(4);
+}
+
 // TODO: add a bunch of size boxes
 // TODO: add a bunch of help/info labels everywhere
 
@@ -111,41 +133,58 @@ int main()
 {
 	Terminal::configure("simple CLI backup tool", 1.0f);
 
+	info_configs.setRoot(&vb8);
+	info_configs.focusable_component_sequence = { &info_block };
+	info_configs.shortcuts.push_back(Input::Shortcut{ Input::Key{ '1' }, jumpTab1 });
+	info_configs.shortcuts.push_back(Input::Shortcut{ Input::Key{ '2' }, jumpTab2 });
+	info_configs.shortcuts.push_back(Input::Shortcut{ Input::Key{ '3' }, jumpTab3 });
+	info_configs.shortcuts.push_back(Input::Shortcut{ Input::Key{ '4' }, jumpTab4 });
+	info_configs.shortcuts.push_back(Input::Shortcut{ Input::Key{ '5' }, jumpTab5 });
+	// TODO: add shortcut for saving/loading config
+
 	input_selection.setRoot(&vb1);
-	input_selection.focusable_component_sequence = { &include_list, &exclude_list, &exclude_toggles, &next_button };
+	input_selection.focusable_component_sequence = { &include_list, &exclude_list, &exclude_toggles };
 	input_selection.shortcuts.push_back(Input::Shortcut{ Input::Key{ '1' }, jumpTab1 });
 	input_selection.shortcuts.push_back(Input::Shortcut{ Input::Key{ '2' }, jumpTab2 });
 	input_selection.shortcuts.push_back(Input::Shortcut{ Input::Key{ '3' }, jumpTab3 });
 	input_selection.shortcuts.push_back(Input::Shortcut{ Input::Key{ '4' }, jumpTab4 });
+	input_selection.shortcuts.push_back(Input::Shortcut{ Input::Key{ '5' }, jumpTab5 });
 	// TODO: add shortcut for adding, removing elements
-	// TODO: add shortcut for saving/loading config
 
 	archive_config.setRoot(&vb2);
-	archive_config.focusable_component_sequence = { &archive_mode, &compression_type, &compression_level, &keep_uncompressed, &max_threads, &next_button };
+	archive_config.focusable_component_sequence = { &archive_mode, &compression_type, &compression_level, &max_threads, &keep_uncompressed };
 	archive_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '1' }, jumpTab1 });
 	archive_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '2' }, jumpTab2 });
 	archive_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '3' }, jumpTab3 });
 	archive_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '4' }, jumpTab4 });
+	archive_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '5' }, jumpTab5 });
 	static int system_max_threads = std::thread::hardware_concurrency();
 	max_threads.step_size = 1.0f / system_max_threads;
 	max_threads.value = 1.0f / system_max_threads;
 
 	additional_config.setRoot(&vb7);
-	additional_config.focusable_component_sequence = { &verbosity, &next_button };
+	additional_config.focusable_component_sequence = { &verbosity };
 	additional_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '1' }, jumpTab1 });
 	additional_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '2' }, jumpTab2 });
 	additional_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '3' }, jumpTab3 });
 	additional_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '4' }, jumpTab4 });
+	additional_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '5' }, jumpTab5 });
 
+	execution.setRoot(&vb10);
+	execution.focusable_component_sequence = { &output_location, &execute_button, &command_capture };
+	execution.shortcuts.push_back(Input::Shortcut{ Input::Key{ '1' }, jumpTab1 });
+	execution.shortcuts.push_back(Input::Shortcut{ Input::Key{ '2' }, jumpTab2 });
+	execution.shortcuts.push_back(Input::Shortcut{ Input::Key{ '3' }, jumpTab3 });
+	execution.shortcuts.push_back(Input::Shortcut{ Input::Key{ '4' }, jumpTab4 });
+	execution.shortcuts.push_back(Input::Shortcut{ Input::Key{ '5' }, jumpTab5 });
+	// TODO: cancel and execute shortcuts
+	
 	while(true)
 	{
 		active_page->checkInput();
 		
-		if (active_page == &input_selection)
-			next_button.enabled = include_list.elements.size() > 0;
-		else if (active_page == &archive_config)
+		if (active_page == &archive_config)
 		{
-			next_button.enabled = true;
 			compression_level.enabled = compression_type.selected_index != 0;
 			max_threads.enabled = compression_level.enabled;
 			keep_uncompressed.enabled = compression_level.enabled;
