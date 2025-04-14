@@ -52,10 +52,11 @@ VerticalBox vb2({ &tab_display, &hb2, &archive_help_label });
 Page additional_config;
 RadioButton verbosity({ "normal", "verbose", "extra verbose" });
 BorderedBox bb7(&verbosity, "verbosity");
+TextInputBox additional_options("");
+BorderedBox bb12(&additional_options, "custom options");
 Label additional_help_label(" [TAB] next field | [1-5] next step ");
-VerticalBox vb7({ &tab_display, &bb7, &additional_help_label });
+VerticalBox vb7({ &tab_display, &bb7, &bb12, &additional_help_label });
 // TODO: additional copy operations
-// TODO: other command line toggles
 
 Page execution;
 TextInputBox output_location("archive.tar");
@@ -126,8 +127,32 @@ void jumpTab5()
 	setPage(4);
 }
 
-// TODO: add a bunch of size boxes
 // TODO: add a bunch of help/info labels everywhere
+
+string generateCommand()
+{
+	string command_text = "tar ";
+
+	// verbosity control
+	switch (verbosity.selected_index)
+	{
+	case 0: break;
+	case 1: command_text += "-v "; break;
+	case 2: command_text += "-vv "; break;
+	}
+
+
+}
+
+// WHEN RUN:
+// - if creating, go ahead and run the command
+// - if updating, check if the tar file exists
+//   - if it doesnt, check if the tar.xz file exists
+//     - if it doesnt, go into create mode
+//     - if it does, decompress it into just a tar
+//   - go ahead and update
+
+// will this even work?
 
 int main()
 {
@@ -163,7 +188,7 @@ int main()
 	max_threads.value = 1.0f / system_max_threads;
 
 	additional_config.setRoot(&vb7);
-	additional_config.focusable_component_sequence = { &verbosity };
+	additional_config.focusable_component_sequence = { &verbosity, &additional_options };
 	additional_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '1' }, jumpTab1 });
 	additional_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '2' }, jumpTab2 });
 	additional_config.shortcuts.push_back(Input::Shortcut{ Input::Key{ '3' }, jumpTab3 });
@@ -194,6 +219,10 @@ int main()
 
 			compression_level_label.text = to_string((int)(compression_level.value * 9.0f));
 			max_threads_label.text = to_string((int)(max_threads.value * (float)system_max_threads));
+		}
+		else if (active_page == &execution)
+		{
+			command_label = generateCommand();
 		}
 
 		active_page->render();
