@@ -30,7 +30,7 @@ VerticalBox vb1({ &tab_display, &hb1, &input_help_label });
 // TODO: dialog for adding files or excludes
 
 Page archive_config;
-RadioButton archive_mode({ "create", "append", "update & append" }, 2);
+RadioButton archive_mode({ "create", "add & update" }, 2);
 BorderedBox bb3(&archive_mode, "archive mode");
 RadioButton compression_type({ "none", "xz", "gz", "lz" }, 1);
 BorderedBox bb4(&compression_type, "compression method");
